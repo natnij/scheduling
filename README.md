@@ -41,19 +41,19 @@ Branch and bound算法的核心是如何得到每个节点上的上下边界。�
 
 简单来说，假设原始问题为 
 
-P: minimize $ c^Tx $
+P: minimize $c^Tx$
 
 subject to:  
 
-$ Ax \geq b $ (假设为难约束)，$ Bx \leq d $ （假设为简单约束），$ x \in \mathbb{Z}_{+}^n $
+$Ax \geq b$ (假设为难约束)，$Bx \leq d$ （假设为简单约束），$x \in \mathbb{Z}_{+}^n$
 
 可以转化为求解松弛问题
 
-PL: minimize $ c^Tx + \lambda^T(b - Ax) $
+PL: minimize $c^Tx + \lambda^T(b - Ax)$
 
-s.t. $ Bx \leq d $，$ x \in \mathbb{Z}_{+}^n $
+s.t. $Bx \leq d $，$ x \in \mathbb{Z}_{+}^n$
 
-其中 $ \lambda $是Lagrangian multiplier（拉格朗日乘数）。对于Lagrangian multiplier的取值，一般采用subgradient方法迭代求解。
+其中 $\lambda$是Lagrangian multiplier（拉格朗日乘数）。对于Lagrangian multiplier的取值，一般采用subgradient方法迭代求解。
 
 **Subgradient**：不可导函数的梯度法求极值
 
@@ -68,7 +68,7 @@ s.t. $ Bx \leq d $，$ x \in \mathbb{Z}_{+}^n $
 **测试数据**：
 
 假设产品结构如下：
-![alt text](testProductStructure.JPG)
+![alt text](doc/testProductStructure.JPG)
 
 a, d为独立原材料，b,c,g为生产过程中的半成品，h为成品。
 
@@ -127,37 +127,37 @@ L: 一个足够大的正值
 
 求解任务sequence和开始时间：
 
-$ s_i $: 任务 i 的开始时间
+$s_i$: 任务 i 的开始时间
 
-$ y_{ij} $: 0/1，如果为1则代表 i 在 j 前发生
+$y_{ij}$: 0/1，如果为1则代表 i 在 j 前发生
 
 原始日程安排问题为：
 
-$ (\mathrm{P}): \text{minimize } z = \sum_{i \notin F} h_i(s_{\phi(i)} - s_i) + \sum_{i \in F} h_i(d_i - s_i)  $
+$(\mathrm{P}): \text{minimize } z = \sum_{i \notin F} h_i(s_{\phi(i)} - s_i) + \sum_{i \in F} h_i(d_i - s_i)$
 
 s.t.
 
-$ s_i + p_i - s_j \leq  L \cdot (1 - y_{ij}) \text{  for } i, j \in M_k(i < j) \text{ and } \forall k $,  (2)
+$s_i + p_i - s_j \leq  L \cdot (1 - y_{ij}) \text{  for } i, j \in M_k(i < j) \text{ and } \forall k$,  (2)
 
-$ s_j + p_j - s_i \leq L \cdot y_{ij} \text{  for } i, j \in M_k(i < j) \text{ and } \forall k $,  (3)
+$s_j + p_j - s_i \leq L \cdot y_{ij} \text{  for } i, j \in M_k(i < j) \text{ and } \forall k$,  (3)
 
-$ s_i + p_i \leq d_i, \text{for } i \in F $, (4)
+$s_i + p_i \leq d_i, \text{for } i \in F$, (4)
 
-$ s_i + p_i \leq s_{\phi(i)}, \text{for } i \notin F $, (5)
+$s_i + p_i \leq s_{\phi(i)}, \text{for } i \notin F$, (5)
 
-$ s_i \geq 0, \forall i $, (6)
+$s_i \geq 0, \forall i$, (6)
 
-$ y_{ij} = {0,1} \text{ for } i,j \notin M_k(i < j) \text{ and } \forall k $. (7)
+$y_{ij} = {0,1} \text{ for } i,j \notin M_k(i < j) \text{ and } \forall k$. (7)
 
 通过定义阶梯库存成本echelon inventory，可以进一步简化原始问题 (P) 为：
 
-$ (\mathrm{P}): \text{minimize } z = \sum_{i} e_i(d_{\varphi(i)} - s_i)$,  (8)
+$(\mathrm{P}): \text{minimize } z = \sum_{i} e_i(d_{\varphi(i)} - s_i)$,  (8)
 
 其中：
 
-$ e_i \equiv h_i - \sum_{j \in \Lambda(i)} h_j, \forall i $, 
+$e_i \equiv h_i - \sum_{j \in \Lambda(i)} h_j, \forall i$, 
 
-$ d_{\varphi(i)} $ 是 i 对应成品的截止时间。
+$d_{\varphi(i)}$ 是 i 对应成品的截止时间。
 
 建模和算法实现基于[这篇论文](https://pdfs.semanticscholar.org/1f93/f3da32b66134b5bc040692c76ca2a888680c.pdf)。
 
@@ -165,71 +165,71 @@ $ d_{\varphi(i)} $ 是 i 对应成品的截止时间。
 
 通过松弛(4), (5)两项限制，可以得到新的松弛问题：
 
-$ (\mathrm{LR}_\lambda): \text{ minimize } \sum_{\forall i} \big( \lambda_i - e_i - \sum_{j \in \Lambda(i)} \lambda_j \big) s_i + \sum_{\forall i} \big( e_i d_{\varphi(i)} + \lambda_i p_i \big) - \sum_{i \in F} \lambda_i d_i$ （9）
+$(\mathrm{LR}_\lambda): \text{ minimize } \sum_{\forall i} \big( \lambda_i - e_i - \sum_{j \in \Lambda(i)} \lambda_j \big) s_i + \sum_{\forall i} \big( e_i d_{\varphi(i)} + \lambda_i p_i \big) - \sum_{i \in F} \lambda_i d_i$ （9）
 
-s.t. (2), (3), (6), (7), 并且$ \lambda_i \geq 0 \forall i $.
+s.t. (2), (3), (6), (7), 并且$\lambda_i \geq 0 \forall i$.
 
-用 $ L(\lambda) $表示松弛问题 $ (\mathrm{LR}_\lambda) $的最优解，即原始问题$ (\mathrm{P}) $ 的下边界。
+用 $L(\lambda) $表示松弛问题 $ (\mathrm{LR}_\lambda) $的最优解，即原始问题$ (\mathrm{P})$ 的下边界。
 
-任意给定一组 $\lambda_n $（拉格朗日乘数），都可以用来求解公式(9)而得出一个最优解 $ L(\lambda_n) $。所以松弛问题 $ (\mathrm{LR}_\lambda) $ 转化为求解 $ (\mathrm{LR}_\lambda) $ 的[双对问题](https://en.wikipedia.org/wiki/Duality_(optimization)) ：
+任意给定一组 $\lambda_n$（拉格朗日乘数），都可以用来求解公式(9)而得出一个最优解 $L(\lambda_n) $。所以松弛问题 $ (\mathrm{LR}_\lambda) $ 转化为求解 $ (\mathrm{LR}_\lambda)$ 的[双对问题](https://en.wikipedia.org/wiki/Duality_(optimization)) ：
 
-$ (\mathrm{PL}): \text{ maximize } L(\lambda_n) $ s.t. $ \lambda \geq 0 $。
+$(\mathrm{PL}): \text{ maximize } L(\lambda_n) $ s.t. $ \lambda \geq 0$。
 
-继续把松弛问题  $ (\mathrm{LR}_\lambda) $ 的双对问题 $ (\mathrm{PL}) $ 分解，可以得到K个独立的单设备多任务排产问题
+继续把松弛问题  $(\mathrm{LR}_\lambda) $ 的双对问题 $ (\mathrm{PL})$ 分解，可以得到K个独立的单设备多任务排产问题
 
-$ (\mathrm{DP}_k): \text{ minimize } \sum_{i \in M_k} \big( \lambda_i - e_i - \sum_{j \in \Lambda(i)} \lambda_j \big) s_i $ (10)
+$(\mathrm{DP}_k): \text{ minimize } \sum_{i \in M_k} \big( \lambda_i - e_i - \sum_{j \in \Lambda(i)} \lambda_j \big) s_i$ (10)
 
 s.t.
 
-$ s_i + p_i - s_j \leq L \cdot (1 - y_{ij}, \forall i, j \in M_k(i < j)$, (2')
+$s_i + p_i - s_j \leq L \cdot (1 - y_{ij}, \forall i, j \in M_k(i < j)$, (2')
 
-$ s_j + p_j - s_i \leq L \cdot y_{ij}, \forall i, j \in M_k(i < j) $, (3')
+$s_j + p_j - s_i \leq L \cdot y_{ij}, \forall i, j \in M_k(i < j)$, (3')
 
-$ y_{ij} = {0,1}, \forall i, j \in M_k(i < j) $, (7')
+$y_{ij} = {0,1}, \forall i, j \in M_k(i < j)$, (7')
 
-$ \lambda_i \geq 0, \forall i \in M_k $ (11)
+$\lambda_i \geq 0, \forall i \in M_k$ (11)
 
-$ s_i \geq l_k, \forall i \in M_k $, (12)
+$s_i \geq l_k, \forall i \in M_k$, (12)
 
-$ s_i + p_i \leq u_k, \forall i \in M_k $. (13)
+$s_i + p_i \leq u_k, \forall i \in M_k$. (13)
 
-由于在给定 $ \lambda $的情况下，松弛问题$ (\mathrm{LR}_\lambda) $的第二项和第三项为常数，所以在新的独立问题$ (\mathrm{DP}_k) $中省略了这两项，而只用 $ L_k(\lambda) $表示 $ (\mathrm{DP}_k) $ 的解值，并且有：
+由于在给定 $\lambda$的情况下，松弛问题$(\mathrm{LR}_\lambda)$的第二项和第三项为常数，所以在新的独立问题$(\mathrm{DP}_k)$中省略了这两项，而只用 $L_k(\lambda)$表示 $(\mathrm{DP}_k)$ 的解值，并且有：
 
-$ L(\lambda) = \sum_{k=1}^{K} L_k(\lambda) + \sum_i(e_i d_{\varphi(i)} + \lambda_i p_i) - \sum_{i \in F} \lambda_i d_i $. 
+$L(\lambda) = \sum_{k=1}^{K} L_k(\lambda) + \sum_i(e_i d_{\varphi(i)} + \lambda_i p_i) - \sum_{i \in F} \lambda_i d_i$. 
 
 为了得到**单设备多任务排产的近似解**，使用了"通用加权最短时长优先"排序法（GWSPT）。
 
-“加权”指 $ (\mathrm{DP}_k) $ 中的权重项: 
+“加权”指 $(\mathrm{DP}_k)$ 中的权重项: 
 
-$ w_i =  \big( \lambda_i - e_i - \sum_{j \in \Lambda(i)} \lambda_j \big) $
+$w_i =  \big( \lambda_i - e_i - \sum_{j \in \Lambda(i)} \lambda_j \big)$
 
 [可以证明](https://pdfs.semanticscholar.org/1f93/f3da32b66134b5bc040692c76ca2a888680c.pdf)，当排序顺序按照 w / p 降序排列时，排序顺序为最优，即：
 
-$ y_{ij} = 1 \text{ and } y_{ji} = 0 \text{ if } \cfrac{w_i}{p_i} \geq \cfrac{w_j}{p_j} $
+$y_{ij} = 1 \text{ and } y_{ji} = 0 \text{ if } \cfrac{w_i}{p_i} \geq \cfrac{w_j}{p_j}$
 
 根据$ w_i $的符号，可以将k设备的任务集 $ M_k $ 分为三个数据子集：
 
-$ M_k^{+} = {i: w_i > 0 \text{ and } i \in M_k}$
+$M_k^{+} = {i: w_i > 0 \text{ and } i \in M_k}$
 
-$ M_k^{0} = {i: w_i = 0 \text{ and } i \in M_k}$
+$M_k^{0} = {i: w_i = 0 \text{ and } i \in M_k}$
 
-$ M_k^{-} = {i: w_i < 0 \text{ and } i \in M_k}$
+$M_k^{-} = {i: w_i < 0 \text{ and } i \in M_k}$
 
 [可以进一步证明](https://pdfs.semanticscholar.org/1f93/f3da32b66134b5bc040692c76ca2a888680c.pdf)，如果
 
-$ M_k^{+}$ 子集的任务排序在 $\big[ l_k, l_k + \sum_{i \in M_k^{+}} p_i \big]$ 区间，
+$M_k^{+}$ 子集的任务排序在 $\big[ l_k, l_k + \sum_{i \in M_k^{+}} p_i \big]$ 区间，
 
-$ M_k^{0}$ 子集的任务排序在 $\big[  l_k + \sum_{i \in M_k^{+}} p_i,  u_k - \sum_{i \in M_k^{-}} p_i \big] $ 区间，
+$M_k^{0}$ 子集的任务排序在 $\big[  l_k + \sum_{i \in M_k^{+}} p_i,  u_k - \sum_{i \in M_k^{-}} p_i \big] $ 区间，
 
-$ M_k^{-}$ 子集的任务排序在 $\big[ u_k - \sum_{i \in M_k^{-}} p_i, u_k \big]$ 区间，
+$M_k^{-}$ 子集的任务排序在 $\big[ u_k - \sum_{i \in M_k^{-}} p_i, u_k \big]$ 区间，
 
 并分别按照GWSPT排序法排序，则$ (\mathrm{DP}_k) $可以得到最优近似解；
 
 其中，对于每个设备的排产时间上下界$ l_k, u_k$的计算如下：
 
-$ u_k = max_{i \in M_k}\big{\{}d_{\varphi(i)} - \sum_{j \in \Phi(i)} p_j\big{\}} $, 其中 $ \Phi(i) $ 集合包含任务 i 和所有任务 i 的下游任务。
+$u_k = max_{i \in M_k}\big{\{}d_{\varphi(i)} - \sum_{j \in \Phi(i)} p_j\big{\}}$, 其中 $\Phi(i)$ 集合包含任务 i 和所有任务 i 的下游任务。
 
-$ l_k = min_{i \in M_k} \big{\{}min_{j \in \Psi(i)}\big(\sum_{l \in \Theta(i,j)} p_l - p_i \big)\big{\}} $ 其中 $ \Psi(i) $ 是所有任务 i 的上游任务中的原材料集合，$ \Theta(i,j) $是从原材料到任务 i 的路径上的所有其他任务集合。
+$l_k = min_{i \in M_k} \big{\{}min_{j \in \Psi(i)}\big(\sum_{l \in \Theta(i,j)} p_l - p_i \big)\big{\}}$ 其中 $ \Psi(i)$ 是所有任务 i 的上游任务中的原材料集合，$\Theta(i,j)$是从原材料到任务 i 的路径上的所有其他任务集合。
 
 "通用加权最短时长优先"排序法（GWSPT）代码实现 (本文中的代码示例仅供参考。由于与实际代码的结构不同，可能有参数定义的偏差。另外比较长的函数由于篇幅原因没有展示，有需要的请私聊)：
 
@@ -287,9 +287,9 @@ def calculateSigmaLambda_lambdaj(waitingList, row):
     return lambdaTotal
 ```
 
-计算单设备排产上下边界 $ u_k, l_k $的代码实现：
+计算单设备排产上下边界 $u_k, l_k$的代码实现：
 
-计算 $ \sum_{l \in \Theta(i,j)} p_l - p_i $:
+计算 $\sum_{l \in \Theta(i,j)} p_l - p_i$:
 
 ```python
 def findPhi(waitingList, product, stack=[]):
@@ -349,7 +349,7 @@ def calculateSigmaThetaPl(waitingList):
     return sigmaThetaTbl
 ```
     
-    计算 $ min_{j \in \Psi(i)}\big(\sum_{l \in \Theta(i,j)} p_l - p_i \big)$ :
+    计算 $min_{j \in \Psi(i)}\big(\sum_{l \in \Theta(i,j)} p_l - p_i \big)$ :
 ```python 
     def findMinPsiPj(product, sigmaThetaTbl):
     """ recursively find the min of process time of all j in set Psi(i).
@@ -371,24 +371,23 @@ def calculateSigmaThetaPl(waitingList):
 ```
 **计算次梯度**：
 
-给定任务 i 对应的拉格朗日乘数的初始值 $ \lambda_i^0 $, 第n次迭代的结果如下：
+给定任务 i 对应的拉格朗日乘数的初始值 $\lambda_i^0$, 第n次迭代的结果如下：
 
-$ \lambda_i^{n+1} = 
+$\lambda_i^{n+1} = 
       \begin{cases} 
       max\{0, \lambda_i^n + t_n(s_i^n + p_i - d_i)\} & \quad \forall i \in F, \\
       max\{0, \lambda_i^n + t_n(s_i^n + P_i - s_{\phi(i)}^n)\} & \quad \forall i \notin F,
-      \end{cases} 
-  $
+      \end{cases}$
   
-  其中 $ (s_1^n, s_2^n, \dots s_l^n) $ 是松弛问题 $ (\mathrm{LR}_\lambda) $在给定数组 $ \lambda^n $下的一组最优解，
+  其中 $(s_1^n, s_2^n, \dots s_l^n) $ 是松弛问题 $ (\mathrm{LR}_\lambda)$在给定数组 $\lambda^n$下的一组最优解，
   
-  步长 $ t_n = \cfrac{\mu_n(z^{*} - L(\lambda^n))}{\sum_{i \in F}(s_i^n + p_i - d+i)^2 + \sum_{i \notin F}(s_i^n + p_i - s_{\phi(i)}^n)^2} $,
+  步长 $t_n = \cfrac{\mu_n(z^{*} - L(\lambda^n))}{\sum_{i \in F}(s_i^n + p_i - d+i)^2 + \sum_{i \notin F}(s_i^n + p_i - s_{\phi(i)}^n)^2}$,
   
-  $ \mu_n $是一个范围在(0, 2]的标量，当接近最优解时减小$ \mu_n $保证收敛速度，
+  $\mu_n$是一个范围在(0, 2]的标量，当接近最优解时减小$\mu_n$保证收敛速度，
   
-  $ z^{*} $是 (PL)问题的一个上边界（有效解），迭代计算得出；$L(\lambda^n)$ 是迭代计算的下边界。
+  $z^{*}$是 (PL)问题的一个上边界（有效解），迭代计算得出；$L(\lambda^n)$ 是迭代计算的下边界。
   
-  另外设定 $ \omega $为最大迭代次数；$ \epsilon $为迭代停止条件：当 $ (z^{*} - L(\lambda^n) / L(\lambda^n) < \epsilon$时停止迭代；$ \zeta $为控制 $ \mu $值变小的参数：当最优解在 $ \zeta $次迭代中没有进步，则减小 $ \mu $值。典型设置为 e.g. $ \omega = 1000, \zeta = 10, \epsilon = 0.001 $。   
+  另外设定 $\omega$为最大迭代次数；$\epsilon$为迭代停止条件：当 $(z^{*} - L(\lambda^n) / L(\lambda^n) < \epsilon$时停止迭代；$\zeta$为控制 $\mu$值变小的参数：当最优解在 $\zeta$次迭代中没有进步，则减小 $\mu$值。典型设置为 e.g. $\omega = 1000, \zeta = 10, \epsilon = 0.001$。   
 
 计算次梯度的代码实现：
 ```python
@@ -431,11 +430,11 @@ def calculateTn(waitingList, zStar, L, mu, ):
 - 在设备 k 上给定$ M_k $集的初始排产顺序 $\rho_k$
 - 根据同一设备的任务集$ M_k $的下边界解，调整各任务的开始时间如下：
 
-    - 设所有在 k 设备上，且任务开始时间晚于 i 的任务集为 $ \Gamma(i) = \{j: y_{ij} = 1\}, \forall i \in M_k$,
-    - 重设任务 i 的截止时间为 $d_i = s_{\phi(i)}, \forall i \in M_k \text{\F} $ 
+    - 设所有在 k 设备上，且任务开始时间晚于 i 的任务集为 $\Gamma(i) = \{j: y_{ij} = 1\}, \forall i \in M_k$,
+    - 重设任务 i 的截止时间为 $d_i = s_{\phi(i)}, \forall i \in M_k \text{\F}$ 
     - 重设任务 i 的开始时间为 $s_i = min \{d_i, min_{j \in \Gamma(i)} s_j \} - p_i, \forall i \in M_k$
 - 从M_k的最晚任务 l 开始，遍历M_k集合的所有任务 i ：
-    - 如果任务 i 的截止时间 $ d_i > d_l + p_i $：把任务 i 排到M_k的最后一位（最晚开始）
+    - 如果任务 i 的截止时间 $d_i > d_l + p_i$：把任务 i 排到M_k的最后一位（最晚开始）
         - 否则：从 l 开始，逐一检查排在 l 和 i 中间的任务 h，如果有 $ s_h - (s_{h-1} + p_{h-1}) \geq p_i $ 并且 $ (s_{h-1} + p_{h-1}) + p_i \leq d_i $，则把任务 i 插在h 和 h-1之间。
 
 迭代更新 $s_{\phi(i)}$ 代码实现：
