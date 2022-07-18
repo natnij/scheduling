@@ -169,13 +169,13 @@ $(\mathrm{LR}_\lambda): \text{ minimize } \sum_{\forall i} \big( \lambda_i - e_i
 
 s.t. (2), (3), (6), (7), 并且$\lambda_i \geq 0 \forall i$.
 
-用 $L(\lambda) $表示松弛问题 $ (\mathrm{LR}_\lambda) $的最优解，即原始问题$ (\mathrm{P})$ 的下边界。
+用 $L(\lambda)$表示松弛问题 $(\mathrm{LR}_\lambda)$的最优解，即原始问题$(\mathrm{P})$ 的下边界。
 
-任意给定一组 $\lambda_n$（拉格朗日乘数），都可以用来求解公式(9)而得出一个最优解 $L(\lambda_n) $。所以松弛问题 $ (\mathrm{LR}_\lambda) $ 转化为求解 $ (\mathrm{LR}_\lambda)$ 的[双对问题](https://en.wikipedia.org/wiki/Duality_(optimization)) ：
+任意给定一组 $\lambda_n$（拉格朗日乘数），都可以用来求解公式(9)而得出一个最优解 $L(\lambda_n)$。所以松弛问题 $(\mathrm{LR}_\lambda)$ 转化为求解 $(\mathrm{LR}_\lambda)$ 的[双对问题](https://en.wikipedia.org/wiki/Duality_(optimization)) ：
 
 $(\mathrm{PL}): \text{ maximize } L(\lambda_n) $ s.t. $ \lambda \geq 0$。
 
-继续把松弛问题  $(\mathrm{LR}_\lambda) $ 的双对问题 $ (\mathrm{PL})$ 分解，可以得到K个独立的单设备多任务排产问题
+继续把松弛问题  $(\mathrm{LR}_\lambda)$ 的双对问题 $(\mathrm{PL})$ 分解，可以得到K个独立的单设备多任务排产问题
 
 $(\mathrm{DP}_k): \text{ minimize } \sum_{i \in M_k} \big( \lambda_i - e_i - \sum_{j \in \Lambda(i)} \lambda_j \big) s_i$ (10)
 
@@ -219,17 +219,17 @@ $M_k^{-} = {i: w_i < 0 \text{ and } i \in M_k}$
 
 $M_k^{+}$ 子集的任务排序在 $\big[ l_k, l_k + \sum_{i \in M_k^{+}} p_i \big]$ 区间，
 
-$M_k^{0}$ 子集的任务排序在 $\big[  l_k + \sum_{i \in M_k^{+}} p_i,  u_k - \sum_{i \in M_k^{-}} p_i \big] $ 区间，
+$M_k^{0}$ 子集的任务排序在 $\big[  l_k + \sum_{i \in M_k^{+}} p_i,  u_k - \sum_{i \in M_k^{-}} p_i \big]$ 区间，
 
 $M_k^{-}$ 子集的任务排序在 $\big[ u_k - \sum_{i \in M_k^{-}} p_i, u_k \big]$ 区间，
 
-并分别按照GWSPT排序法排序，则$ (\mathrm{DP}_k) $可以得到最优近似解；
+并分别按照GWSPT排序法排序，则$(\mathrm{DP}_k)$可以得到最优近似解；
 
-其中，对于每个设备的排产时间上下界$ l_k, u_k$的计算如下：
+其中，对于每个设备的排产时间上下界$l_k, u_k$的计算如下：
 
 $u_k = max_{i \in M_k}\big{\{}d_{\varphi(i)} - \sum_{j \in \Phi(i)} p_j\big{\}}$, 其中 $\Phi(i)$ 集合包含任务 i 和所有任务 i 的下游任务。
 
-$l_k = min_{i \in M_k} \big{\{}min_{j \in \Psi(i)}\big(\sum_{l \in \Theta(i,j)} p_l - p_i \big)\big{\}}$ 其中 $ \Psi(i)$ 是所有任务 i 的上游任务中的原材料集合，$\Theta(i,j)$是从原材料到任务 i 的路径上的所有其他任务集合。
+$l_k = min_{i \in M_k} \big{\{}min_{j \in \Psi(i)}\big(\sum_{l \in \Theta(i,j)} p_l - p_i \big)\big{\}}$ 其中 $\Psi(i)$ 是所有任务 i 的上游任务中的原材料集合，$\Theta(i,j)$是从原材料到任务 i 的路径上的所有其他任务集合。
 
 "通用加权最短时长优先"排序法（GWSPT）代码实现 (本文中的代码示例仅供参考。由于与实际代码的结构不同，可能有参数定义的偏差。另外比较长的函数由于篇幅原因没有展示，有需要的请私聊)：
 
@@ -257,7 +257,7 @@ def doGWSPT(df, lk, uk, plusTotal, minusTotal):
     return df
 ```
 
-计算权重 $  \sum_{j \in \Lambda(i)} \lambda_j $的代码实现：
+计算权重 $\sum_{j \in \Lambda(i)} \lambda_j$的代码实现：
 
 ```python
 def calculateSigmaLambda_lambdaj(waitingList, row):
@@ -379,7 +379,7 @@ $\lambda_i^{n+1} =
       max\{0, \lambda_i^n + t_n(s_i^n + P_i - s_{\phi(i)}^n)\} & \quad \forall i \notin F,
       \end{cases}$
   
-  其中 $(s_1^n, s_2^n, \dots s_l^n) $ 是松弛问题 $ (\mathrm{LR}_\lambda)$在给定数组 $\lambda^n$下的一组最优解，
+  其中 $(s_1^n, s_2^n, \dots s_l^n)$ 是松弛问题 $(\mathrm{LR}_\lambda)$在给定数组 $\lambda^n$下的一组最优解，
   
   步长 $t_n = \cfrac{\mu_n(z^{*} - L(\lambda^n))}{\sum_{i \in F}(s_i^n + p_i - d+i)^2 + \sum_{i \notin F}(s_i^n + p_i - s_{\phi(i)}^n)^2}$,
   
@@ -526,8 +526,8 @@ branchOut:
   
   ### 测试案例结果：
 
-KPI | lagrangian relaxation|lagrangian relaxation and heuristic|lagrangian relaxation and heuristic and BB
------|-------------------------------|--------------------------------------------- --|-------------------------------
+KPI|lagrangian relaxation|lagrangian relaxation and heuristic|lagrangian relaxation and heuristic and BB
+-----|-------------|------------------|--------------
 inventory holding cost|520|500|460
 average throughput|22.5|21.75|20.25
 average machine utilization rate|50%|50%|54%
