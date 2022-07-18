@@ -427,15 +427,15 @@ def calculateTn(waitingList, zStar, L, mu, ):
 **求解上边界** $z^{*}$ ：
 
 <u>拉格朗日启发式算法伪代码</u>：
-- 在设备 k 上给定$ M_k $集的初始排产顺序 $\rho_k$
-- 根据同一设备的任务集$ M_k $的下边界解，调整各任务的开始时间如下：
+- 在设备 k 上给定$M_k$集的初始排产顺序 $\rho_k$
+- 根据同一设备的任务集$M_k$的下边界解，调整各任务的开始时间如下：
 
     - 设所有在 k 设备上，且任务开始时间晚于 i 的任务集为 $\Gamma(i) = \{j: y_{ij} = 1\}, \forall i \in M_k$,
     - 重设任务 i 的截止时间为 $d_i = s_{\phi(i)}, \forall i \in M_k \text{\F}$ 
     - 重设任务 i 的开始时间为 $s_i = min \{d_i, min_{j \in \Gamma(i)} s_j \} - p_i, \forall i \in M_k$
 - 从M_k的最晚任务 l 开始，遍历M_k集合的所有任务 i ：
     - 如果任务 i 的截止时间 $d_i > d_l + p_i$：把任务 i 排到M_k的最后一位（最晚开始）
-        - 否则：从 l 开始，逐一检查排在 l 和 i 中间的任务 h，如果有 $ s_h - (s_{h-1} + p_{h-1}) \geq p_i $ 并且 $ (s_{h-1} + p_{h-1}) + p_i \leq d_i $，则把任务 i 插在h 和 h-1之间。
+        - 否则：从 l 开始，逐一检查排在 l 和 i 中间的任务 h，如果有 $s_h - (s_{h-1} + p_{h-1}) \geq p_i$ 并且 $(s_{h-1} + p_{h-1}) + p_i \leq d_i$，则把任务 i 插在h 和 h-1之间。
 
 迭代更新 $s_{\phi(i)}$ 代码实现：
 ```python
@@ -456,7 +456,7 @@ def updateSphi(waitingList, _tbl):
        tbl.loc[tbl['s_phi'].isnull(), 'dueDate'])
     return tbl
 ```    
-迭代计算$ min_{j \in \Gamma(i)} s_j  $的代码实现：
+迭代计算$min_{j \in \Gamma(i)} s_j$的代码实现：
 ```python
 def calculateMinGammaSj(_mkTbl, sortedAsc=False):
     """ calculates minimum start time among tasks j, which 
