@@ -117,11 +117,11 @@ Mk: 将在当前设备上排产的任务集
 
 F: 成品集
 
-$ p_i $: 任务 i 的运行时长
+$p_i$: 任务 i 的运行时长
 
-$ d_i $: 任务 i 的成品截止时间
+$d_i$: 任务 i 的成品截止时间
 
-$ h_i $: 任务 i 的每件每单位时间库存成本
+$h_i$: 任务 i 的每件每单位时间库存成本
 
 L: 一个足够大的正值
 
@@ -173,7 +173,7 @@ s.t. (2), (3), (6), (7), 并且$\lambda_i \geq 0 \forall i$.
 
 任意给定一组 $\lambda_n$（拉格朗日乘数），都可以用来求解公式(9)而得出一个最优解 $L(\lambda_n)$。所以松弛问题 $(\mathrm{LR}_\lambda)$ 转化为求解 $(\mathrm{LR}_\lambda)$ 的[双对问题](https://en.wikipedia.org/wiki/Duality_(optimization)) ：
 
-$(\mathrm{PL}): \text{ maximize } L(\lambda_n) $ s.t. $ \lambda \geq 0$。
+$(\mathrm{PL}): \text{ maximize } L(\lambda_n)$ s.t. $\lambda \geq 0$。
 
 继续把松弛问题  $(\mathrm{LR}_\lambda)$ 的双对问题 $(\mathrm{PL})$ 分解，可以得到K个独立的单设备多任务排产问题
 
@@ -207,7 +207,7 @@ $w_i =  \big( \lambda_i - e_i - \sum_{j \in \Lambda(i)} \lambda_j \big)$
 
 $y_{ij} = 1 \text{ and } y_{ji} = 0 \text{ if } \cfrac{w_i}{p_i} \geq \cfrac{w_j}{p_j}$
 
-根据$ w_i $的符号，可以将k设备的任务集 $ M_k $ 分为三个数据子集：
+根据$w_i$的符号，可以将k设备的任务集 $M_k$ 分为三个数据子集：
 
 $M_k^{+} = {i: w_i > 0 \text{ and } i \in M_k}$
 
