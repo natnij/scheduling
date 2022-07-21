@@ -1,80 +1,62 @@
-##  启发式算法求解混合整数线性优化问题 （mixed integer linear optimization） 
+##  Mixed integer linear optimization - production planning and resource allocation
 
-## —— 生产计划安排和资源分配
+### Problem formulation
 
-### 问题描述和范围限定：
+There are two types of production planning: static and dynamic.
 
-生产计划安排分为两种：静态和动态计划。
+The static plan is created a long time before actual production. It assumes that all prerequisites are met, and given the optimization objectives (such as minimum delay, minimum inventory cost, etc.), the plan is an optimal solution to the problem. 
 
-静态计划生成的时间距离实际生产时间较长，以假设所有预设条件都满足为前提，在给定优化目标下（比如最小延迟，最低库存金额，etc.）寻找最优计划。静态计划一般采用优化算法实现。
+The dynamic plan is based on static plan, it is created when there are conflicts to the planning a short time before actual production, such as material shortage, unplanned downtime, strikes, etc.
 
-动态计划基于静态计划，是在实际排产出现异常时（比如原材料供应不足，设备突然故障造成停线，上游产品突发质量问题，产线工人罢工，etc.）
+This project is focused on static production planning. More specifically, heuristics and exact algorithms. Applicable optimization problems include 1).tasks with deadlines, 2).limited resource with expiration date (such as machine utilization: the available slots are only valid for the current time period and cannot be preserved), 3).multi-resource, multi-task production planning, 4).optimization objectives are lowest inventory cost and within deadline.
 
-这篇文章主要关注生成静态计划的优化算法，包括启发式算法和确切算法。更多动态计划的算法有机会再介绍。
+The planned tasks can have a tree-like hierarchical structure: every upper level task can have multiple child tasks(upstream tasks that are prerequisites of the current task), but every lower level task has only one parent(downstream task that is dependent on the current task). For example, a finished product is the root node of the tree, raw materials are leaf nodes and semifinished products are nodes in between.
 
-这篇文章的优化算法适用于此类计划问题 1). 任务有截止日期，2). 资源为有限资源并且不可持续（比如设备利用率，不可持续性表现在剩余资源有实效且不可存储，过期无效），3).多资源多任务排产，4）任务目标为以最小库存成本在截止日期前完成生产。
-
-各个任务间可以有层级关系，下游任务可以由多个上游任务合并形成，但是每个上游任务只能对应唯一的下游任务（树形产品结构，成品在根节点，原材料在叶节点，半成品在其他中间节点）。
-
-以测试数据的产品结构为例：a和d为原材料，b,c,g为半成品，h为成品。其中g为assembly。在测试数据中，每个任务有唯一编码。
+A very simple example: a and d are raw materials, b,c,g, semifinished goods, and h the final product. In test data, every task has a unique ID.
 
 ![alt text](doc/testProductStructure.JPG)
 
-### 使用的算法：
+### Algorithms used:
 
-**Branch and Bound**：常用的解决混合整数问题（MIP）的确切算法
+**Branch and Bound**：
 
-确切算法（exact）指能保证找到最优解的一类算法（相对于启发式算法heuristic），在解决问题时往往由于需要搜索庞大的解空间而造成运算量过大运算时间过长。仍然有一些确切算法适合用于求解某一类特定问题，在问题规模可控的条件下能在可接受的时间内给出最优解。
+Exact algorithms are guaranteed to find the global optimal solution (provided there is one). It can be time-consuming to search the entire solution space. However, there are exact algorithms that are efficient in solving specific types of problems.
 
-Branch and Bound是一类经常用于求解MIP的确切算法，通过构造树形解空间并以边界形式对解空间剪枝达到有效搜索最优解的目的。在我们的生产日程安排问题中，branch and bound 以非最优有效解作为上边界，松弛问题的最优解（无效解）作为下边界，通过分枝和节点选择规则，将边界解不断分解为子问题分别求解，直到找到最优解。由于存在上下边界，大部分中间节点会因为超过已存在的有效解范围而被剪枝，从而快速缩小解空间，提高算法效率。
+Branch and Bound is very often used to solve mixed integer programming (MIP) problems. It creates a tree-like solution space and by redefining the boundaries, prune the tree and reach the optimal solution. In our project, the algorithm estimates a suboptimal but feasible solution as the upper bound, a relaxed (infeasble) solution as lower bound, and divide the problem into layers of subproblems, until it finds the global optimal. Thanks to the upper and lower bounds, most tree nodes would be pruned in the process, thereby accelerating the process.
 
-![alt text](doc/branchAndBound.JPG)
-[图片来源](http://www.gurobi.com/resources/getting-started/mip-basics)
+The core of Branch and bound is how to find the upper and lower bounds. The method we use in this project is Lagrangian relaxation.
 
-Branch and bound算法的核心是如何得到每个节点上的上下边界。常用的方法是Lagrangian relaxation.
+**Lagrangian Relaxation**：
 
-**Lagrangian Relaxation**：常用的线性优化问题降低求解难度的技术
+A method often used to reduce the complexity in a linear optimization problem.
 
-一些由实际场景建模得到的线性优化问题由于存在大量约束条件，使精确求解此类方程组难度增大。Lagrangian relaxation是一类即能保留目标函数线性特点，又能将较难限制条件转化为目标函数一部分的常用松弛方法。此类松弛方程的解可以无限接近于原始方程组的解，因此常常作为原始解的限制边界，应用于组合优化算法中。
+Some real-life linear optimization problems have huge amount of constraints and adds to the complexity of the algorithm. Lagrangian relaxation turns constraints into relaxed objectives, whose solution is theoretically infinitely closer to the solutions of the original problem. It is therefore often used in finding bounds.
 
-比如在我们的生产日程安排问题中，将使用Lagrangian relaxation方法得到节点的下边界，并在此基础上使用启发式算法（Lagrangian heuristic），得到有效的然而可能非最优的解作为节点上边界。
-
-简单来说，假设原始问题为 
+In our project, we use the method to find the lower bound. Based on the method, we apply Lagrangian heuristic to get a feasible solution as upper bound.
 
 P: minimize $c^Tx$
 
 subject to:  
 
-$Ax \geq b$ (假设为难约束)，$Bx \leq d$ （假设为简单约束），$x \in \mathbb{Z}_{+}^n$
+$Ax \geq b$，$Bx \leq d$, $x \in \mathbb{Z}_{+}^n$
 
-可以转化为求解松弛问题
+Can be converted into the relaxed problem of:
 
 PL: minimize $c^Tx + \lambda^T(b - Ax)$
 
-s.t. $Bx \leq d $，$ x \in \mathbb{Z}_{+}^n$
+s.t. $Bx \leq d $，$x \in \mathbb{Z}_{+}^n$
 
-其中 $\lambda$是Lagrangian multiplier（拉格朗日乘数）。对于Lagrangian multiplier的取值，一般采用subgradient方法迭代求解。
+where $\lambda$ is Lagrangian multiplier. We get the multiplier through subgradient methods (the gradient descent for non-derivable functions).
 
-**Subgradient**：不可导函数的梯度法求极值
+### the case: production planning
 
-[梯度法](https://baike.baidu.com/item/%E6%A2%AF%E5%BA%A6%E4%B8%8B%E9%99%8D/4864937?fr=aladdin)是常用的求解方程的方法。在给定目标下，首先随机选取一组方程的初始（无效）解，根据计算目标值和实际目标值的差异判断下一次迭代中尝试的解应该向哪个方向调整。梯度可以标识调整方向，是通过对损失函数求一阶导得到的。
+**test data**：
 
-然而在优化问题中，由于有限制条件的存在，损失函数往往不可导。所以不能采用梯度法，而是使用很相似的次梯度法标识每次迭代解的调整方向。
-
-![alt_text](doc/subgradient.jpg)
-
-### 案例：工厂生产计划安排
-
-**测试数据**：
-
-假设产品结构如下：
 ![alt text](doc/testProductStructure.JPG)
 
-a, d为独立原材料，b,c,g为生产过程中的半成品，h为成品。
+In test data, we need to produce four finished products, numbered task+[1-4]. The product  hierarchy is constructed through a tree structure with both upper level and lower level task IDs. Machines are numbered mk+[11-16], a machine that is used in upstream processing has a lower number than the downstream machines. The heuristic will start with downstream machines. Other information such as inventory unit cost, order deadline, etc. are as follows:
 
-作为测试数据，假设需要生产4件相同产品，唯一编号分别为任务名+1-4，产品结构以“上游任务”和“下游任务”两个字段连接，其中“下游任务”只可能有一个产品编号；“上游任务”可以有多个编号，代表装配任务。执行任务的设备分别为mk11-16，上游设备编号不能小于下游设备编号（启发式算法将从最下游设备开始排产）。其他如运行时间，库存成本，订单截止日期 etc.如下表所示：
-
-任务|设备|上游任务|下游任务|运行时长|成品编号|截止日期|单位时间库存成本
+task|machine|upstream tasks|downstream task|processing time|product number|deadline|inventory unit cost
 ----|----|----|----|----|----|----|----
 a1|mk16||b1|3|h1|50|1
 b1|mk15|a1|c1|2|h1|50|2
@@ -101,37 +83,39 @@ d4|mk13||g4|4|h4|70|1
 g4|mk12|c4, d4|h4|6|h4|70|8
 h4|mk11|g4||1|h4|70|10
 
-**建模构造原始问题**：
+**Modeling the original problem**：
 
-i: 当前任务编号
+i: current task
 
-k: 当前设备编号
+k: current machine
 
-$\phi(i)$: 当前任务的紧邻下游任务集（immediate successors）
+$\phi(i)$: set of immediate successors
 
-$\varphi(i)$: 当前任务对应的最终成品编号
+$\varphi(i)$: corresponding final product
 
-$\Lambda(i)$: 当前任务的紧邻上游任务集（immediate predecessors）
+$\Lambda(i)$: set of immediate predecessors
 
-Mk: 将在当前设备上排产的任务集
+Mk: set of tasks to be processed on the current machine
 
-F: 成品集
+F: set of final products
 
-$p_i$: 任务 i 的运行时长
+$p_i$: processing time of i
 
-$d_i$: 任务 i 的成品截止时间
+$d_i$: order deadline of the final product of i
 
-$h_i$: 任务 i 的每件每单位时间库存成本
+$h_i$: i's unit time inventory cost per product unit
 
-L: 一个足够大的正值
+L: a big enough positive number
 
-求解任务sequence和开始时间：
 
-$s_i$: 任务 i 的开始时间
+We want to get the task sequence and each task's start time:
 
-$y_{ij}$: 0/1，如果为1则代表 i 在 j 前发生
+$s_i$: start time of i
 
-原始日程安排问题为：
+$y_{ij}$: 0/1，if 1, means i is processed before j
+
+
+The original problem is:
 
 $(\mathrm{P}): \text{minimize } z = \sum_{i \notin F} h_i(s_{\phi(i)} - s_i) + \sum_{i \in F} h_i(d_i - s_i)$
 
@@ -149,35 +133,35 @@ $s_i \geq 0, \forall i$, (6)
 
 $y_{ij} = {0,1} \text{ for } i,j \notin M_k(i < j) \text{ and } \forall k$. (7)
 
-通过定义阶梯库存成本echelon inventory，可以进一步简化原始问题 (P) 为：
 
-$(\mathrm{P}): \text{minimize } z = \sum_{i} e_i(d_{\varphi(i)} - s_i)$,  (8)
+We define the echelon inventory and simplify (P) into: 
 
-其中：
+$(\mathrm{P}): \text{minimize } z = \sum_{i} e_i(d_{\varphi(i)} - s_i)$ (8)
+
+where
 
 $e_i \equiv h_i - \sum_{j \in \Lambda(i)} h_j, \forall i$, 
 
-$d_{\varphi(i)}$ 是 i 对应成品的截止时间。
+$d_{\varphi(i)}$ is i's final product's deadline
 
-建模和算法实现基于[这篇论文](https://pdfs.semanticscholar.org/1f93/f3da32b66134b5bc040692c76ca2a888680c.pdf)。
 
-**将原始问题转化为松弛问题**，并拆解为独立的单设备多任务排产松弛问题，分别求解：
+**Convert the original problem into a relaxed problem**, then decompose the problem into single-machine, multi-task relaxed problems:
 
-通过松弛(4), (5)两项限制，可以得到新的松弛问题：
+By relaxing (4) and (5) we get:
 
-$(\mathrm{LR}_\lambda): \text{ minimize } \sum_{\forall i} \big( \lambda_i - e_i - \sum_{j \in \Lambda(i)} \lambda_j \big) s_i + \sum_{\forall i} \big( e_i d_{\varphi(i)} + \lambda_i p_i \big) - \sum_{i \in F} \lambda_i d_i$ （9）
+$(\mathrm{LR}_\lambda): \text{ minimize } \sum_{\forall i} ( \lambda_i - e_i - \sum_{j \in \Lambda(i)} \lambda_j ) s_i + \sum_{\forall i} ( e_i d_{\varphi(i)} + \lambda_i p_i ) - \sum_{i \in F} \lambda_i d_i$ （9）
 
-s.t. (2), (3), (6), (7), 并且$\lambda_i \geq 0 \forall i$.
+s.t. (2), (3), (6), (7), and $\lambda_i \geq 0 \forall i$.
 
-用 $L(\lambda)$表示松弛问题 $(\mathrm{LR}_\lambda)$的最优解，即原始问题$(\mathrm{P})$ 的下边界。
+$L(\lambda)$ denotes the optimal solution to the relaxed problem $(\mathrm{LR}_\lambda)$, or the lower bound to the original problem$(\mathrm{P})$.
 
-任意给定一组 $\lambda_n$（拉格朗日乘数），都可以用来求解公式(9)而得出一个最优解 $L(\lambda_n)$。所以松弛问题 $(\mathrm{LR}_\lambda)$ 转化为求解 $(\mathrm{LR}_\lambda)$ 的[双对问题](https://en.wikipedia.org/wiki/Duality_(optimization)) ：
+Given a random set of $\lambda_n$, we can solve(9) and get a solution $L(\lambda_n)$. Therefore the relaxed problem $(\mathrm{LR}_\lambda)$ is the equivalent of solving the dual problem of $(\mathrm{LR}_\lambda)$:
 
-$(\mathrm{PL}): \text{ maximize } L(\lambda_n)$ s.t. $\lambda \geq 0$。
+$(\mathrm{PL}): \text{ maximize } L(\lambda_n)$ s.t. $\lambda \geq 0$
 
-继续把松弛问题  $(\mathrm{LR}_\lambda)$ 的双对问题 $(\mathrm{PL})$ 分解，可以得到K个独立的单设备多任务排产问题
+Next we decompose the dual problem $(\mathrm{PL})$, and get $k$ independent single-machine multi-task planning problem:
 
-$(\mathrm{DP}_k): \text{ minimize } \sum_{i \in M_k} \big( \lambda_i - e_i - \sum_{j \in \Lambda(i)} \lambda_j \big) s_i$ (10)
+$(\mathrm{DP}_k): \text{ minimize } \sum_{i \in M_k} ( \lambda_i - e_i - \sum_{j \in \Lambda(i)} \lambda_j ) s_i$ (10)
 
 s.t.
 
@@ -193,21 +177,19 @@ $s_i \geq l_k, \forall i \in M_k$, (12)
 
 $s_i + p_i \leq u_k, \forall i \in M_k$. (13)
 
-由于在给定 $\lambda$的情况下，松弛问题$(\mathrm{LR}_\lambda)$的第二项和第三项为常数，所以在新的独立问题$(\mathrm{DP}_k)$中省略了这两项，而只用 $L_k(\lambda)$表示 $(\mathrm{DP}_k)$ 的解值，并且有：
+With given $\lambda$, the relaxed problem $(\mathrm{LR}_\lambda)$'s second and third terms are constants and can be omitted in the subproblems $(\mathrm{DP}_k)$. We use $L_k(\lambda)$ to denote solutions to $(\mathrm{DP}_k)$. 
 
 $L(\lambda) = \sum_{k=1}^{K} L_k(\lambda) + \sum_i(e_i d_{\varphi(i)} + \lambda_i p_i) - \sum_{i \in F} \lambda_i d_i$. 
 
-为了得到**单设备多任务排产的近似解**，使用了"通用加权最短时长优先"排序法（GWSPT）。
+To calculate the approx. solution to the subproblems, we use [GWSPT](https://pdfs.semanticscholar.org/1f93/f3da32b66134b5bc040692c76ca2a888680c.pdf) algorithm. The weights to $(\mathrm{DP}_k)$ are:
 
-“加权”指 $(\mathrm{DP}_k)$ 中的权重项: 
+$w_i =  ( \lambda_i - e_i - \sum_{j \in \Lambda(i)} \lambda_j )$
 
-$w_i =  \big( \lambda_i - e_i - \sum_{j \in \Lambda(i)} \lambda_j \big)$
-
-[可以证明](https://pdfs.semanticscholar.org/1f93/f3da32b66134b5bc040692c76ca2a888680c.pdf)，当排序顺序按照 w / p 降序排列时，排序顺序为最优，即：
+It is proven in the Authors' original paper that the task sequence is optimal when it is ordered in descending order of $w/p$, or:
 
 $y_{ij} = 1 \text{ and } y_{ji} = 0 \text{ if } \cfrac{w_i}{p_i} \geq \cfrac{w_j}{p_j}$
 
-根据$w_i$的符号，可以将k设备的任务集 $M_k$ 分为三个数据子集：
+According to the sign of $w_i$, machine $k$'s set of tasks $M_k$ can be divided into 3 subsets:
 
 $M_k^{+} = {i: w_i > 0 \text{ and } i \in M_k}$
 
@@ -215,23 +197,23 @@ $M_k^{0} = {i: w_i = 0 \text{ and } i \in M_k}$
 
 $M_k^{-} = {i: w_i < 0 \text{ and } i \in M_k}$
 
-[可以进一步证明](https://pdfs.semanticscholar.org/1f93/f3da32b66134b5bc040692c76ca2a888680c.pdf)，如果
+The paper proved that if:
 
-$M_k^{+}$ 子集的任务排序在 $\big[ l_k, l_k + \sum_{i \in M_k^{+}} p_i \big]$ 区间，
+$M_k^{+}$'s task sequence is in $[ l_k, l_k + \sum_{i \in M_k^{+}} p_i ]$
 
-$M_k^{0}$ 子集的任务排序在 $\big[  l_k + \sum_{i \in M_k^{+}} p_i,  u_k - \sum_{i \in M_k^{-}} p_i \big]$ 区间，
+$M_k^{0}$'s task sequence is in $[  l_k + \sum_{i \in M_k^{+}} p_i,  u_k - \sum_{i \in M_k^{-}} p_i ]$, and
 
-$M_k^{-}$ 子集的任务排序在 $\big[ u_k - \sum_{i \in M_k^{-}} p_i, u_k \big]$ 区间，
+$M_k^{-}$'s task sequence is in $[ u_k - \sum_{i \in M_k^{-}} p_i, u_k ]$, 
 
-并分别按照GWSPT排序法排序，则$(\mathrm{DP}_k)$可以得到最优近似解；
+and ordered according to GWSPT, respectively, then $(\mathrm{DP}_k)$ has an optimal solution. To calculate $l_k, u_k$:
 
-其中，对于每个设备的排产时间上下界$l_k, u_k$的计算如下：
+$u_k = max_{i \in M_k}[d_{\varphi(i)} - \sum_{j \in \Phi(i)} p_j ]$, where $\Phi(i)$ is a set that contains task $i$ and all of its downstream tasks.
 
-$u_k = max_{i \in M_k}\big{\{}d_{\varphi(i)} - \sum_{j \in \Phi(i)} p_j\big{\}}$, 其中 $\Phi(i)$ 集合包含任务 i 和所有任务 i 的下游任务。
+$l_k = min_{i \in M_k} [min_{j \in \Psi(i)}(\sum_{l \in \Theta(i,j)} p_l - p_i )]$ where $\Psi(i)$ contains all the leaf nodes (raw material) in task $i$'s upstream, $\Theta(i,j)$ contains all other nodes in $i$'s upstream.
 
-$l_k = min_{i \in M_k} \big{\{}min_{j \in \Psi(i)}\big(\sum_{l \in \Theta(i,j)} p_l - p_i \big)\big{\}}$ 其中 $\Psi(i)$ 是所有任务 i 的上游任务中的原材料集合，$\Theta(i,j)$是从原材料到任务 i 的路径上的所有其他任务集合。
+### Implementation and sample code
 
-"通用加权最短时长优先"排序法（GWSPT）代码实现 (本文中的代码示例仅供参考。由于与实际代码的结构不同，可能有参数定义的偏差。另外比较长的函数由于篇幅原因没有展示，有需要的请私聊)：
+GWSPT sample code:
 
 ```python
 def doGWSPT(df, lk, uk, plusTotal, minusTotal):
@@ -257,121 +239,9 @@ def doGWSPT(df, lk, uk, plusTotal, minusTotal):
     return df
 ```
 
-计算权重 $\sum_{j \in \Lambda(i)} \lambda_j$的代码实现：
+**Calculate subgradients**：
 
-```python
-def calculateSigmaLambda_lambdaj(waitingList, row):
-    """ calculate sum of lambda j for all j in Lambda_i, 
-        Lambda_i is the set of i's immediate predecessors in 
-        the product hierarchy.
-        input:
-            waitingList: the list of items to be scheduled, 
-            with the following data fields:
-                immSuc: immediate successor of the item. 
-                    if none then 'final product'.
-                lambdaIter: lagrangian multiplier from the previous iteration
-                startTime: current best solution for a start time
-                s_phi: start time of the item's immediate successor
-                dueDate: due date of the item's final product
-                equipment: resource to be scheduled
-    """
-    immPre = row['immPre']
-    if immPre == 'rawMaterial':
-        return 0
-    if not isinstance(immPre, list):
-        immPre = [immPre]
-    lambdaTotal = 0
-    for pre in immPre:
-        lambdaTotal += waitingList.loc[waitingList.parts == pre, 
-                                                               'lambdaIter'].tolist()[0]
-    return lambdaTotal
-```
-
-计算单设备排产上下边界 $u_k, l_k$的代码实现：
-
-计算 $\sum_{l \in \Theta(i,j)} p_l - p_i$:
-
-```python
-def findPhi(waitingList, product, stack=[]):
-    """ recursively find the sum of process time of all j in set Phi(i).
-        set Phi(i) contains ALL successors of item i in the 
-        product hierarchy (regardless of the equipment where
-        they are produced), including i itself.
-        
-        stack: storage of process times of all items in Phi(i). This
-            is used in method calculateSigmaThetaPl() to populate 
-            sigmaThetaTbl, as utility table to calculate lb in 
-            method findMinPsiPj().
-    """
-    row = waitingList.loc[waitingList.parts == product, :]
-    immSuc = row['immSuc'].tolist()[0]
-    processTime = row['processTime'].tolist()[0]
-    finalProd = row['finalProduct'].tolist()[0]
-    stack.append((product, processTime))
-    if product != finalProd:
-        findPhi(immSuc, stack)
-    return stack
-
-def findSigmaPhiPj(stack):
-    Phi_pj = [x[1] for x in stack]
-    sigmaPhi_pj = np.sum(Phi_pj)
-    return sigmaPhi_pj
-
-def calculateSigmaThetaPl(waitingList):
-    """ populates sigmaThetaTbl with tuples 
-        (i, j, sum-of-processTime-of-l)
-        for all j in set Psi(i) and l in set Theta(i, j):
-        set Psi(i) contains ALL predecessors of item i which do not have
-        any predecessor(raw material). Theta(i, j) is the set of 
-        all items on the path connecting items i and j in 
-        the product structure (including both i and j). however the sum
-        of processTime should exclude pi.
-    """
-    tmp = waitingList.apply(lambda row:
-                            findSigmaPhiPj(row['parts']), axis=1)
-    tmp.columns = ['sigmaPhi_pj', 'stack']
-    waitingList = pd.concat(
-            [waitingList.reset_index(drop=True), tmp], axis=1)
-    tmpList = waitingList.loc[
-                            waitingList.immPre=='rawMaterial',
-                            'stack'].tolist()
-            
-    for i in np.arange(len(tmpList)):
-        tmp = tmpList[i]
-        rm = tmp[0][0]  # raw material index
-        sigmaP = 0  # cumulative process time of all tasks between i and j
-        for j in np.arange(len(tmp) - 1):
-            sigmaP += tmp[j][1]
-            tmpTheta = pd.DataFrame([[tmp[j+1][0], rm, sigmaP]])
-            tmpTheta.columns = ['i', 'j', 'sigmaThetaPl']
-            sigmaThetaTbl = pd.concat([sigmaThetaTbl, tmpTheta], 
-                                           axis=0)
-    return sigmaThetaTbl
-```
-    
-    计算 $min_{j \in \Psi(i)}\big(\sum_{l \in \Theta(i,j)} p_l - p_i \big)$ :
-```python 
-    def findMinPsiPj(product, sigmaThetaTbl):
-    """ recursively find the min of process time of all j in set Psi(i).
-        set Psi(i) contains ALL predecessors of item i that do not have
-        any predecessor(raw material). Theta(i, j) is the set of 
-        all items on the path connecting items i and j in 
-        the product structure.
-    """
-    Psi_i = sigmaThetaTbl[sigmaThetaTbl['i'] == product]
-    if Psi_i.shape[0] == 0:  # rawMaterial node without further predecessor
-        return 0
-    else:
-        # looser lower bound constraints makes solution to (DPk) less 
-        # likely to be a feasible solution to the original problem (P); 
-        # however it's quicker in overall solution procedure. 
-        # therefore taking the min. - shortest path before i as lower 
-        # bound instead of the max. - longest path before i.
-        return np.min(Psi_i['sigmaThetaPl'])
-```
-**计算次梯度**：
-
-给定任务 i 对应的拉格朗日乘数的初始值 $\lambda_i^0$, 第n次迭代的结果如下：
+Given $\lambda_i^0$, the nth iteration is
 
 $\lambda_i^{n+1} = 
       \begin{cases} 
@@ -379,17 +249,19 @@ $\lambda_i^{n+1} =
       max\{0, \lambda_i^n + t_n(s_i^n + P_i - s_{\phi(i)}^n)\} & \quad \forall i \notin F,
       \end{cases}$
   
-  其中 $(s_1^n, s_2^n, \dots s_l^n)$ 是松弛问题 $(\mathrm{LR}_\lambda)$在给定数组 $\lambda^n$下的一组最优解，
-  
-  步长 $t_n = \cfrac{\mu_n(z^{*} - L(\lambda^n))}{\sum_{i \in F}(s_i^n + p_i - d+i)^2 + \sum_{i \notin F}(s_i^n + p_i - s_{\phi(i)}^n)^2}$,
-  
-  $\mu_n$是一个范围在(0, 2]的标量，当接近最优解时减小$\mu_n$保证收敛速度，
-  
-  $z^{*}$是 (PL)问题的一个上边界（有效解），迭代计算得出；$L(\lambda^n)$ 是迭代计算的下边界。
-  
-  另外设定 $\omega$为最大迭代次数；$\epsilon$为迭代停止条件：当 $(z^{*} - L(\lambda^n) / L(\lambda^n) < \epsilon$时停止迭代；$\zeta$为控制 $\mu$值变小的参数：当最优解在 $\zeta$次迭代中没有进步，则减小 $\mu$值。典型设置为 e.g. $\omega = 1000, \zeta = 10, \epsilon = 0.001$。   
+where $(s_1^n, s_2^n, \dots s_l^n)$ is an optimal solution to the relaxed problem $(\mathrm{LR}_\lambda)$ given $\lambda^n$.
 
-计算次梯度的代码实现：
+step $t_n = \cfrac{\mu_n(z^{*} - L(\lambda^n))}{\sum_{i \in F}(s_i^n + p_i - d+i)^2 + \sum_{i \notin F}(s_i^n + p_i - s_{\phi(i)}^n)^2}$
+
+$\mu_n \in (0, 2]$, reduced as we get closer to the optimal solution, to improve convergence property.
+
+$z^{*}$ is an upper bound to the (PL) problem, $L(\lambda^n)$ is the lower bound.
+
+We also set maximum iteration to $\omega$, stop criteria $\epsilon$: when $(z^{*} - L(\lambda^n) / L(\lambda^n) < \epsilon$ the iteration is stopped.
+
+
+Sample code:
+
 ```python
 def updateSubgradient(waitingList, zStar, L_lambda):
     """ find best lambda value iteratively.
@@ -424,20 +296,23 @@ def calculateTn(waitingList, zStar, L, mu, ):
     tn = numerator / (np.sum(f) + np.sum(nf))
     return tn
 ```
-**求解上边界** $z^{*}$ ：
 
-<u>拉格朗日启发式算法伪代码</u>：
-- 在设备 k 上给定$M_k$集的初始排产顺序 $\rho_k$
-- 根据同一设备的任务集$M_k$的下边界解，调整各任务的开始时间如下：
+**Calculate upper bound** $z^{*}$ ：
 
-    - 设所有在 k 设备上，且任务开始时间晚于 i 的任务集为 $\Gamma(i) = \{j: y_{ij} = 1\}, \forall i \in M_k$,
-    - 重设任务 i 的截止时间为 $d_i = s_{\phi(i)}, \forall i \in M_k \text{\F}$ 
-    - 重设任务 i 的开始时间为 $s_i = min \{d_i, min_{j \in \Gamma(i)} s_j \} - p_i, \forall i \in M_k$
-- 从M_k的最晚任务 l 开始，遍历M_k集合的所有任务 i ：
-    - 如果任务 i 的截止时间 $d_i > d_l + p_i$：把任务 i 排到M_k的最后一位（最晚开始）
-        - 否则：从 l 开始，逐一检查排在 l 和 i 中间的任务 h，如果有 $s_h - (s_{h-1} + p_{h-1}) \geq p_i$ 并且 $(s_{h-1} + p_{h-1}) + p_i \leq d_i$，则把任务 i 插在h 和 h-1之间。
+Pseudo code for the Lagrangian heuristic:
 
-迭代更新 $s_{\phi(i)}$ 代码实现：
+- on machine $k$, define $M_k$'s initial task sequence $\rho_k$
+- According to the previously calculated lower bound, calculate start times:
+
+    - $\Gamma(i) = \{j: y_{ij} = 1\}, \forall i \in M_k$ is the set of all tasks on $k$ that starts later than task $i$ 
+    - set $i$'s finish time to $d_i = s_{\phi(i)}, \forall i \in M_k \text{\F}$ 
+    - set $i$'s start time to $s_i = min \{d_i, min_{j \in \Gamma(i)} s_j \} - p_i, \forall i \in M_k$
+- beginning from M_k's latest task $l$, search all tasks (denoted $i$) in $M_k$:
+    - if i's finish time $d_i > d_l + p_i$: $i$ is the last task on $M_k$
+    - else: from $l$, search all tasks $h$ between $l$ and $i$, if $s_h - (s_{h-1} + p_{h-1}) \geq p_i$ and $(s_{h-1} + p_{h-1}) + p_i \leq d_i$, insert $i$ between $h$ and $h-1$
+
+Sample code to calculate $s_{\phi(i)}$:
+
 ```python
 def updateSphi(waitingList, _tbl):
     """ s_phi(i) is the start time of phi(i).
@@ -456,7 +331,9 @@ def updateSphi(waitingList, _tbl):
        tbl.loc[tbl['s_phi'].isnull(), 'dueDate'])
     return tbl
 ```    
-迭代计算$min_{j \in \Gamma(i)} s_j$的代码实现：
+
+Sample code to calculate $min_{j \in \Gamma(i)} s_j$:
+
 ```python
 def calculateMinGammaSj(_mkTbl, sortedAsc=False):
     """ calculates minimum start time among tasks j, which 
@@ -480,51 +357,43 @@ def calculateMinGammaSj(_mkTbl, sortedAsc=False):
     return mkTbl
 ```
 
-**实现branch and bound**：
+**Branch and bound**：
 
-<u>节点选择伪代码</u>：
+The pseudo code for node selection:
 
-- 给定当前节点的设备 mk
-- 给定当前节点的随机任务 row
-- 给定已确定的下游排产计划 set S
-- 给定仍未排产的上游任务集 set P'
-- 给定判断上边界 UB
+- given $m_k$, random tasks on $m_k$ as row, fixed downstream planning set S, still open upstream planning set P', and the upper bound:
 
 createNode:
- - 将row添加到set S，假设作为已确定任务排产
- - 将row从set P'中删除
- - 将set P'作为Lagrangian heuristic的输入，由启发式算法迭代得到新解的上下边界
+ - add row to set S
+ - delete row from set P'
+ - set P' as input to the Lagrangian heuristic, get new upper and lower bounds
     
-<u>分枝伪代码</u>：
+The pseudo code for branch-out:
 
-- 给定初始有效解（来自Lagrangian heuristic）z\*
-- 给定初始上边界UB
-- 给定包含全部设备的数组machineList，按升序排列
+- given initial feasible solution from Lagrangian heuristic $z^{*}$
+- given upper bound
+- given list of machines, ordered in ascending order
 
 branchOut:
- - 将z\*中最下游设备上开始时间最晚的任务作为根节点添加到空集set S
- - 将根节点对应的任务从set P'中删除
- - 设当前节点设备mk为machinList的第一个元素
- - 迭代，直到迭代结果的上边界不再进步，或达到最大迭代次数：
-     - 设当前设备mk上所有未排产的任务为数据集 s_k
-     - 如果s_k的长度为1：
-         - 直接定义s_k中的任务生产日期
-         - 将s_k中的任务添加到set S中
-         - 将s_k中的任务从set P'中删除
-         - 清空s_k
-     - 如果s_k的长度为0：
-         - 设mk为machineList中的下一个元素
-     - 否则：
-         - 将s_k中的每个任务分别作为输入
-         - 执行createNode，返回所有新解，及其上下界
-         - 如果没有找到有效解，或新解的下边界大于已存在的有效解的上边界，则删除节点，不再分枝
-         - 否则：
-           - 如果新解的上边界小于（优于）已存在的有效解，则用新解替换作为新的最优有效解
-           - 更新上边界
-     - 选择所有保留的新节点中下边界最小的节点的set S和set P'，代替对应的旧数据集
-     - 进入下一轮迭代
+ - Add the task with the lastest start time in the most downstream machine as root node to empty set S, according to $z^{*}$
+ - delete the root node task from set P'
+ - assume the current machine $m_k$ is the first element in the list of machines
+ - iterate until upper bound does not improve, or maximum iteration reached:
+     - $s_k$ is the set of all unplanned tasks on $m_k$
+     - if len($s_k$)==1:
+         - add start time to $s_k$
+         - add $s_k$ to set S
+         - delete $s_k$ from set P'
+     - if len($s_k$)==0:
+         - go to the next machine in the list
+     - else:
+         - use every task in $s_k$ as input, execute createNode, get solution and upper/lower bounds
+         - if a feasible solution does not exist, or new lower bound is worse than existing upper bound, then delete node
+         - else:
+           - if new upper bound is improved, use the new upper bound
+     - use the set S and set P' of the node with the most optimal lower bound
   
-  ### 测试案例结果：
+### Test result:
 
 KPI|lagrangian relaxation|lagrangian relaxation and heuristic|lagrangian relaxation and heuristic and BB
 -----|-------------|------------------|--------------
@@ -532,4 +401,4 @@ inventory holding cost|520|500|460
 average throughput|22.5|21.75|20.25
 average machine utilization rate|50%|50%|54%
 
-使用分枝限界法可以得到比单纯解松弛问题，或使用启发式算法更好的优化结果。而基于松弛问题和启发式算法的结果，可以使分枝限界法的计算效率大幅度提高。
+Using branch-and-bound gives better results than using only the Lagrangian relaxation, or the heuristic. 
